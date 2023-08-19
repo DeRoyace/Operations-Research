@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
+#include <limits.h>  // for using INT_MAX, INT_MIN
 #define SIZE 100
 #define min(a, b) a < b ? a: b
 
@@ -18,9 +18,8 @@ void input()
     scanf("%d", &row);
     printf("ENTER NUMBER OF DESTINATIONS: ");
     scanf("%d", &col);
-    // Below incrementing both row and col by 1 for Capacity column and Requirement row
-    row += 2;
-    col += 2;
+    // Below incrementing both row and col by 2 for Capacity column, Requirement row, Row and Column Penalty.
+    row += 2; col += 2;
     int i, j;
     for (i = 0; i < row-1; i++)
     {
@@ -46,7 +45,7 @@ void input()
     }
 }
 
-int sum(int v)
+int sum(int v)  // computes sum of capacities and requirements
 {
     // if v = 1 the function return sum of capacity
     // if v = 0 the function return sum of requirements
@@ -64,7 +63,7 @@ int sum(int v)
     return sum;
 }
 
-void display()
+void display()  // displays the transportation matrix
 {
     int i, j;
     printf("\n");
@@ -93,25 +92,25 @@ void display()
                 printf("Column Penalty\t");
             }
             else if(i == row-2 && j == col-2)
-            {
-                if(sum(1) == sum(0))
-                printf("%d", sum(1));
-                else
-                printf("%d \\ %d", sum(0), sum(1));
-            }
-            else if(j == col-1)
+                printf("%d \\ %d\t", sum(0), sum(1));
+            else if(j == col-1 && i < row-2)
                 printf("\t%d", arr[i][j]);
+            else if( (i == row-1 && j >= col-2) || (i == row-2 && j == col-1)){}
             else
                 printf("%d\t", arr[i][j]);
         }
         printf("\n");
     }
+    printf("\n-------------------------------------------------------------------\n");
 }
 
 void balancing()
 {
-    // 1 = capacity
-    // 0 = requirements
+    // this function checks whether the requirements and capacity are equal or not. 
+    // If not then addidtion of row or columns takes place in order to balance it,
+    // with their corresponding requirements or capacity value computed by their difference of original value.
+    // sum(1) = sum of capacities
+    // sum(0) = sum of requirements
     int i;
     int req = sum(0);
     int cap = sum(1);
@@ -121,25 +120,25 @@ void balancing()
         {
             // adding row between requirements and last origin row
             row++;
-            for(i = 0; i < col-1; i++)
+            for(i = 0; i < col-2; i++)
             {
-                arr[row-1][i] = arr[row-2][i]; // swapping requirements row values
-                arr[row-2][i] = 0;  // making all the cost of new row 0
+                arr[row-2][i] = arr[row-3][i]; // swapping requirements row values
+                arr[row-3][i] = 0;  // making all the cost of new row 0
             }
             // in order to make capacity = requirement: 
-            arr[row-2][col-1] = abs(req - cap); // capacity is given to new row
+            arr[row-3][col-2] = abs(req - cap); // capacity is given to new row
         }
         else
         {
             // adding column between capacity column and last destination column
             col++;
-            for(i = 0; i < row-1; i++)
+            for(i = 0; i < row-2; i++)
             {
-                arr[i][col-1] = arr[i][col-2]; // swapping capacity column values
-                arr[i][col-2] = 0;  // making all the cost of new column 0.
+                arr[i][col-2] = arr[i][col-3]; // swapping capacity column values
+                arr[i][col-3] = 0;  // making all the cost of new column 0.
             }
             // in order to make capacity = requirement: 
-            arr[row-1][col-2] = abs(req - cap); // requirement is given to new column
+            arr[row-2][col-3] = abs(req - cap); // requirement is given to new column
         }
         printf("\nTransportation Matrix after Balancing:");
         display();
@@ -148,7 +147,7 @@ void balancing()
 int mins[2];
 void rowmins(int row_index) // finding two minimum cost value in a row
 {
-    int i, min1, min2;
+    int i, min1, min2, min1_pos;
     min1 = min2 = INT_MAX;
     for(i = 0; i < col-2; i++)
     {
@@ -156,8 +155,9 @@ void rowmins(int row_index) // finding two minimum cost value in a row
         {
             min2 = min1;
             min1 = arr[row_index][i];
+            min1_pos = i;
         }
-        else if(min2 > arr[row_index][i] && arr[row-2][i] != 0 && min1 != arr[row_index][i])
+        else if(min2 > arr[row_index][i] && arr[row-2][i] != 0 && i != min1_pos)
         min2 = arr[row_index][i];
     }
     if(min2 == INT_MAX)
@@ -168,31 +168,27 @@ void rowmins(int row_index) // finding two minimum cost value in a row
 
 void colmins(int col_index) // finding two minimum costs in column of a given column index
 {
-	int k;
-	int i = col_index;
-	int first_minPos = 0;
-	int min1 = arr[0][i];
+    // this method is without using INT_MAX unlike rowmins(...)
+	int k, min1, min2, min1_pos;
+	min1 = arr[0][col_index];
 	for (k = 1; k < row - 2; k++)
 	{
-		if (min1 > arr[k][i] && arr[k][col - 2] != 0)
+		if (min1 > arr[k][col_index] && arr[k][col - 2] != 0)
 		{
-			min1 = arr[k][i];
-			first_minPos = k;
+			min1 = arr[k][col_index];
+			min1_pos = k;
 		}
 	}
 
-	int min2 = 0;
 	for(k = 0; k < row-2; k++)
 	{
-		if (arr[k][col - 2] != 0 && k != first_minPos)
-		min2 = arr[k][i];
+		if (arr[k][col - 2] != 0 && k != min1_pos)
+		min2 = arr[k][col_index];
 	}
-	for (k = 1; k < row - 2; k++)
+	for (k = 0; k < row - 2; k++)
 	{
-		if (min2 > arr[k][i] && arr[k][col - 2] != 0 && k != first_minPos)
-		{
-			min2 = arr[k][i];
-		}
+		if (min2 > arr[k][col_index] && arr[k][col - 2] != 0 && k != min1_pos)
+			min2 = arr[k][col_index];
 	}
 	mins[0] = min1;
 	mins[1] = min2;
@@ -226,7 +222,7 @@ void penalty()  // computing row and column penalties
     }
 }
 int maxPenalty[2];  // maxPenalty[ index, row/col index indicator]
-void getMaxPenalty()
+void getMaxPenalty()    // finds the maximum penalty in row and column
 {
     int i, maxColPenalty, maxRowPenalty, rowpos, colpos;
     maxColPenalty = maxRowPenalty = INT_MIN;
